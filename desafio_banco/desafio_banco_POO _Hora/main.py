@@ -9,6 +9,7 @@ class Cliente:
 
     def realizar_transacao(self, conta, transacao):
         # TODO: somente 10 transações diaria, validar
+        transacao
         transacao.registrar(conta)
     
     def adicionar_conta(self, conta):
@@ -69,25 +70,48 @@ class Conta:
 
 
 class ContaCorrente(Conta):
-    def __init__(self, numero, cliente, limite=500, limite_saque = 3):
+    def __init__(self, numero, cliente, limite=500, limite_saque = 3, limite_transacao = 10):
         super().__init__(numero,cliente)
         self.limite = limite
         self.limite_saque = limite_saque
+        self.limite_transacao = limite_transacao
     
     def sacar(self, valor):
         numero_saque = len(
-            [transacao for transacao in self.historico.transacoes if transacao["tipo"] == Saque.__name__]
+            [transacao for transacao in self.historico.transacoes if transacao["tipo"] == Saque.__name__ and transacao["data"].split(" ")[0] == datetime.now().strftime("%d-%m-%Y")]
+        )
+
+        numero_transacao = len(
+            [transacao for transacao in self.historico.transacoes if transacao["data"].split(" ")[0] == datetime.now().strftime("%d-%m-%Y")]
         )
 
         excedeu_limite = valor>self.limite
         excedeu_saque = numero_saque >= self.limite_saque
+        excedeu_transacao = numero_transacao  >= self.limite_transacao
 
         if excedeu_limite:
             print("\n==== Falha na operação! ====\n-- Valor de saque ultrapassou o limite. --")
         elif excedeu_saque:
             print("\n==== Falha na operação! ====\n-- Numero de saques ultrapassou o limite. --")
+        elif excedeu_transacao:
+            print("\n==== Falha na operação! ====\n-- Numero de transacao ultrapassou o limite. --")
+
         else:
             return super().sacar(valor)
+        return False
+    
+    def depositar(self, valor):
+
+        numero_transacao = len(
+            [transacao for transacao in self.historico.transacoes if transacao["data"].split(" ")[0] == datetime.now().strftime("%d-%m-%Y")]
+        )
+
+        excedeu_transacao = numero_transacao  >= self.limite_transacao
+
+        if excedeu_transacao:
+            print("\n==== Falha na operação! ====\n-- Numero de transacao ultrapassou o limite. --")
+        else:
+            return super().depositar(valor)
         return False
     
     def __str__(self):
@@ -118,7 +142,8 @@ class Historico:
     
     # TODO: filtar todas as transações do dia
     def transacoes_dia(self):
-        pass
+            return [transacao for transacao in self.historico.transacoes if transacao["data"] == datetime.now()]
+
 
 
 class Transacao(ABC):
@@ -315,7 +340,7 @@ def sacar(cliente, valor):
 
 def extrato(cliente):
     extrato = cliente.contas[0].historico.transacoes
-    print(" EXTRATO ".center(40,'='))
+    print(" EXTRATO ".center(54,'='))
     if not extrato:
         print("Sem transações.")
     else:
